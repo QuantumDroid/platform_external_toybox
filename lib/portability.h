@@ -116,6 +116,9 @@ pid_t getsid(pid_t pid);
 #ifndef MS_SHARED
 #define MS_SHARED     (1<<20)
 #endif
+#ifndef MS_RELATIME
+#define MS_RELATIME (1<<21)
+#endif
 
 // When building under obsolete glibc (Ubuntu 8.04-ish), hold its hand a bit.
 #elif __GLIBC__ == 2 && __GLIBC_MINOR__ < 10
@@ -154,17 +157,9 @@ int utimensat(int fd, const char *path, const struct timespec times[2], int flag
 
 #endif // glibc in general
 
-#if !defined(__GLIBC__) && !defined(__BIONIC__)
+#if !defined(__GLIBC__)
 // POSIX basename.
 #include <libgen.h>
-#endif
-
-// glibc was handled above; for 32-bit bionic we need to avoid a collision
-// with toybox's basename_r so we can't include <libgen.h> even though that
-// would give us a POSIX basename(3).
-#if defined(__BIONIC__)
-char *basename(char *path);
-char *dirname(char *path);
 #endif
 
 // Work out how to do endianness
@@ -275,3 +270,9 @@ pid_t xfork(void);
 //#define strncpy(...) @@strncpyisbadmmkay@@
 //#define strncat(...) @@strncatisbadmmkay@@
 
+#ifdef __ANDROID__
+#include <cutils/sched_policy.h>
+#else
+static inline int get_sched_policy(int tid, void *policy) {return 0;}
+static inline char *get_sched_policy_name(int policy) {return "unknown";}
+#endif

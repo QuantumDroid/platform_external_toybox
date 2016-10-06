@@ -1,6 +1,7 @@
 #!/bin/bash
 
-[ -z "$TOPDIR" ] && TOPDIR="$(pwd)"
+TOPDIR="$PWD"
+FILES="$PWD"/tests/files
 
 trap 'kill $(jobs -p) 2>/dev/null; exit 1' INT
 
@@ -29,12 +30,15 @@ if [ $# -ne 0 ]
 then
   for i in "$@"
   do
+    CMDNAME="${i##*/}"
+    CMDNAME="${CMDNAME%.test}"
     . "$TOPDIR"/tests/$i.test
   done
 else
   for i in "$TOPDIR"/tests/*.test
   do
-    CMDNAME="$(echo "$i" | sed 's@.*/\(.*\)\.test@\1@')"
+    CMDNAME="${i##*/}"
+    CMDNAME="${CMDNAME%.test}"
     if [ -h ../$CMDNAME ] || [ ! -z "$TEST_HOST" ]
     then
       cd .. && rm -rf testdir && mkdir testdir && cd testdir || exit 1

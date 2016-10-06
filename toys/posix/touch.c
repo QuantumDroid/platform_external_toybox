@@ -80,10 +80,13 @@ void touch_main(void)
         if (s) break;
         toybuf[1]='y';
       }
+      tm.tm_sec = 0;
       ts->tv_nsec = 0;
       if (s && *s=='.' && sscanf(s, ".%2u%n", &(tm.tm_sec), &len) == 1) {
-        sscanf(s += len, "%lu%n", &ts->tv_nsec, &len);
-        len++;
+        if (sscanf(s += len, "%lu%n", &ts->tv_nsec, &len) == 1) {
+          s--;
+          len++;
+        } else len = 0;
       } else len = 0;
     }
     if (len) {
@@ -94,7 +97,7 @@ void touch_main(void)
 
     errno = 0;
     ts->tv_sec = mktime(&tm);
-    if (!s || *s || errno == EOVERFLOW) perror_exit("bad '%s'", date);
+    if (!s || *s || ts->tv_sec == -1) perror_exit("bad '%s'", date);
   }
   ts[1]=ts[0];
 

@@ -34,6 +34,12 @@ struct double_list {
   char *data;
 };
 
+struct num_cache {
+  struct num_cache *next;
+  long long num;
+  char data[];
+};
+
 void llist_free_arg(void *node);
 void llist_free_double(void *node);
 void llist_traverse(void *list, void (*using)(void *node));
@@ -42,6 +48,9 @@ void *dlist_pop(void *list);  // actually struct double_list **list
 void dlist_add_nomalloc(struct double_list **list, struct double_list *new);
 struct double_list *dlist_add(struct double_list **list, char *data);
 void *dlist_terminate(void *list);
+struct num_cache *get_num_cache(struct num_cache *cache, long long num);
+struct num_cache *add_num_cache(struct num_cache **cache, long long num,
+  void *data, int len);
 
 // args.c
 void get_optflags(void);
@@ -62,6 +71,8 @@ void get_optflags(void);
 #define DIRTREE_SYMFOLLOW    8
 // Don't warn about failure to stat
 #define DIRTREE_SHUTUP      16
+// Breadth first traversal, conserves filehandles at the expense of memory
+#define DIRTREE_BREADTH     32
 // Don't look at any more files in this directory.
 #define DIRTREE_ABORT      256
 
@@ -77,24 +88,29 @@ struct dirtree {
   char name[];
 };
 
-struct dirtree *dirtree_start(char *name, int symfollow);
 struct dirtree *dirtree_add_node(struct dirtree *p, char *name, int flags);
 char *dirtree_path(struct dirtree *node, int *plen);
 int dirtree_notdotdot(struct dirtree *catch);
 int dirtree_parentfd(struct dirtree *node);
-struct dirtree *dirtree_handle_callback(struct dirtree *new,
-  int (*callback)(struct dirtree *node));
 int dirtree_recurse(struct dirtree *node, int (*callback)(struct dirtree *node),
-  int symfollow);
+  int dirfd, int symfollow);
+struct dirtree *dirtree_flagread(char *path, int flags,
+  int (*callback)(struct dirtree *node));
 struct dirtree *dirtree_read(char *path, int (*callback)(struct dirtree *node));
 
 // help.c
 
 void show_help(FILE *out);
 
+// Tell xopen and friends to print warnings but return -1 as necessary
+// The largest O_BLAH flag so far is arch/alpha's O_PATH at 0x800000 so
+// plenty of headroom.
+#define WARN_ONLY (1<<31)
+
 // xwrap.c
 void xstrncpy(char *dest, char *src, size_t size);
 void xstrncat(char *dest, char *src, size_t size);
+void _xexit(void) noreturn;
 void xexit(void) noreturn;
 void *xmalloc(size_t size);
 void *xzalloc(size_t size);
@@ -119,9 +135,14 @@ void xaccess(char *path, int flags);
 void xunlink(char *path);
 int xcreate(char *path, int flags, int mode);
 int xopen(char *path, int flags);
+int xcreate_stdio(char *path, int flags, int mode);
+int xopen_stdio(char *path, int flags);
+int openro(char *path, int flags);
+int xopenro(char *path);
 void xpipe(int *pp);
 void xclose(int fd);
 int xdup(int fd);
+int notstdio(int fd);
 FILE *xfdopen(int fd, char *mode);
 FILE *xfopen(char *path, char *mode);
 size_t xread(int fd, void *buf, size_t len);
@@ -139,8 +160,8 @@ struct passwd *xgetpwuid(uid_t uid);
 struct group *xgetgrgid(gid_t gid);
 struct passwd *xgetpwnam(char *name);
 struct group *xgetgrnam(char *name);
-struct passwd *xgetpwnamid(char *user);
-struct group *xgetgrnamid(char *group);
+unsigned xgetuid(char *name);
+unsigned xgetgid(char *name);
 void xsetuser(struct passwd *pwd);
 char *xreadlink(char *name);
 long xparsetime(char *arg, long units, long *fraction);
@@ -173,10 +194,10 @@ int64_t peek_be(void *ptr, unsigned size);
 int64_t peek(void *ptr, unsigned size);
 void poke(void *ptr, uint64_t val, int size);
 struct string_list *find_in_path(char *path, char *filename);
-long estrtol(char *str, char **end, int base);
-long xstrtol(char *str, char **end, int base);
-long atolx(char *c);
-long atolx_range(char *numstr, long low, long high);
+long long estrtol(char *str, char **end, int base);
+long long xstrtol(char *str, char **end, int base);
+long long atolx(char *c);
+long long atolx_range(char *numstr, long long low, long long high);
 int stridx(char *haystack, char needle);
 char *strlower(char *s);
 char *strafter(char *haystack, char *needle);
@@ -184,7 +205,7 @@ char *chomp(char *s);
 int unescape(char c);
 int strstart(char **a, char *b);
 off_t fdlength(int fd);
-void loopfiles_rw(char **argv, int flags, int permissions, int failok,
+void loopfiles_rw(char **argv, int flags, int permissions,
   void (*function)(int fd, char *name));
 void loopfiles(char **argv, void (*function)(int fd, char *name));
 void xsendfile(int in, int out);
@@ -200,6 +221,18 @@ void create_uuid(char *uuid);
 char *show_uuid(char *uuid);
 char *next_printf(char *s, char **start);
 char *strnstr(char *line, char *str);
+int dev_minor(int dev);
+int dev_major(int dev);
+int dev_makedev(int major, int minor);
+struct passwd *bufgetpwuid(uid_t uid);
+struct group *bufgetgrgid(gid_t gid);
+int readlinkat0(int dirfd, char *path, char *buf, int len);
+int readlink0(char *path, char *buf, int len);
+int regexec0(regex_t *preg, char *string, long len, int nmatch,
+  regmatch_t pmatch[], int eflags);
+char *getusername(uid_t uid);
+char *getgroupname(gid_t gid);
+void do_lines(int fd, void (*call)(char **pline, long len));
 
 #define HR_SPACE 1 // Space between number and units
 #define HR_B     2 // Use "B" for single byte units
@@ -218,11 +251,15 @@ void linestack_addstack(struct linestack **lls, struct linestack *throw,
 void linestack_insert(struct linestack **lls, long pos, char *line, long len);
 void linestack_append(struct linestack **lls, char *line);
 struct linestack *linestack_load(char *name);
-int crunch_str(char **str, int width, FILE *out,
-  int (*escout)(FILE *out, int cols, char **buf));
+int crunch_escape(FILE *out, int cols, int wc);
+int crunch_rev_escape(FILE *out, int cols, int wc);
+int crunch_str(char **str, int width, FILE *out, char *escmore,
+  int (*escout)(FILE *out, int cols, int wc));
 int draw_str(char *start, int width);
 int utf8len(char *str);
 int utf8skip(char *str, int width);
+int draw_trim_esc(char *str, int padto, int width, char *escmore,
+  int (*escout)(FILE *out, int cols,int wc));
 int draw_trim(char *str, int padto, int width);
 
 // interestingtimes.c
@@ -271,13 +308,14 @@ struct mtab_list *xgetmountlist(char *path);
 // signal
 
 void generic_signal(int signal);
+void exit_signal(int signal);
 void sigatexit(void *handler);
 int sig_to_num(char *pidstr);
 char *num_to_sig(int sig);
 
 mode_t string_to_mode(char *mode_str, mode_t base);
 void mode_to_string(mode_t mode, char *buf);
-char *basename_r(char *name);
+char *getbasename(char *name);
 void names_to_pid(char **names, int (*callback)(pid_t pid, char *name));
 
 pid_t xvforkwrap(pid_t pid);

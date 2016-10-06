@@ -6,14 +6,14 @@
 #include "toys.h"
 
 #ifndef TOYBOX_VERSION
-#define TOYBOX_VERSION "0.7.0"
+#define TOYBOX_VERSION "0.7.1"
 #endif
 
 // Populate toy_list[].
 
 #undef NEWTOY
 #undef OLDTOY
-#define NEWTOY(name, opts, flags) {#name, name##_main, opts, flags},
+#define NEWTOY(name, opts, flags) {#name, name##_main, OPTSTR_##name, flags},
 #define OLDTOY(name, oldname, flags) \
   {#name, oldname##_main, OPTSTR_##oldname, flags},
 
@@ -67,6 +67,12 @@ static const int NEED_OPTIONS =
 #include "generated/newtoys.h"
 0;  // Ends the opts || opts || opts...
 
+static void unknown(char *name)
+{
+  toys.exitval = 127;
+  error_exit("Unknown command %s", name);
+}
+
 // Setup toybox global state for this command.
 static void toy_singleinit(struct toy_list *which, char *argv[])
 {
@@ -75,11 +81,19 @@ static void toy_singleinit(struct toy_list *which, char *argv[])
 
   if (CFG_TOYBOX_I18N) setlocale(LC_ALL, "C"+!!(which->flags & TOYFLAG_LOCALE));
 
-  if (CFG_TOYBOX_HELP_DASHDASH && argv[1] && !strcmp(argv[1], "--help")) {
-    if (CFG_TOYBOX && toys.which == toy_list && toys.argv[2])
-      if (!(toys.which = toy_find(toys.argv[2]))) return;
-    show_help(stdout);
-    xexit();
+  // Parse --help and --version for (almost) all commands
+  if (CFG_TOYBOX_HELP_DASHDASH && !(which->flags & TOYFLAG_NOHELP) && argv[1]) {
+    if (!strcmp(argv[1], "--help")) {
+      if (CFG_TOYBOX && toys.which == toy_list && toys.argv[2])
+        if (!(toys.which = toy_find(toys.argv[2]))) unknown(toys.argv[2]);
+      show_help(stdout);
+      xexit();
+    }
+
+    if (!strcmp(argv[1], "--version")) {
+      xputs("toybox "TOYBOX_VERSION);
+      xexit();
+    }
   }
 
   if (NEED_OPTIONS && which->options) get_optflags();
@@ -137,8 +151,11 @@ void toy_exec(char *argv[])
   if (!(which = toy_find(*argv))) return;
 
   // Return if stack depth getting noticeable (proxy for leaked heap, etc).
-  if (toys.stacktop && labs((char *)toys.stacktop-(char *)&which)>6000)
-    return;
+
+  // Compiler writers have decided subtracting char * is undefined behavior,
+  // so convert to integers. (LP64 says sizeof(long)==sizeof(pointer).)
+  if (!CFG_TOYBOX_NORECURSE)
+    if (toys.stacktop && labs((long)toys.stacktop-(long)&which)>6000) return;
 
   // Return if we need to re-exec to acquire root via suid bit.
   if (toys.which && (which->flags&TOYFLAG_ROOTONLY) && toys.wasroot) return;
@@ -163,16 +180,7 @@ void toybox_main(void)
   // For early error reporting
   toys.which = toy_list;
 
-  if (toys.argv[1]) {
-    if (!strcmp("--version", toys.argv[1])) {
-      xputs(TOYBOX_VERSION);
-      xexit();
-    }
-    if (toys.argv[1][0] != '-') {
-      toys.exitval = 127;
-      error_exit("Unknown command %s", toys.argv[1]);
-    }
-  }
+  if (toys.argv[1] && toys.argv[1][0] != '-') unknown(toys.argv[1]);
 
   // Output list of command.
   for (i=1; i<ARRAY_LEN(toy_list); i++) {
@@ -202,7 +210,7 @@ int main(int argc, char *argv[])
 
     toys.stacktop = &stack;
   }
-  *argv = basename_r(*argv);
+  *argv = getbasename(*argv);
 
   // If nommu can't fork, special reentry path.
   // Use !stacktop to signal "vfork happened", both before and after xexec()
