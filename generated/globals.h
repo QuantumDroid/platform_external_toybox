@@ -152,6 +152,7 @@ struct netcat_data {
   long quit_delay;       // -q Exit after EOF from stdin after # seconds.
   char *source_address;  // -s Bind to a specific source address.
   long port;             // -p Bind to a specific source port.
+  long idle;             // -W Wait # seconds for more data
   long wait;             // -w Wait # seconds for a connection.
 };
 
@@ -198,6 +199,7 @@ struct dos2unix_data {
 // toys/other/fallocate.c
 
 struct fallocate_data {
+  long offset;
   long size;
 };
 
@@ -314,12 +316,6 @@ struct nsenter_data {
 
 struct oneit_data {
   char *console;
-};
-
-// toys/other/setfattr.c
-
-struct setfattr_data {
-  char *x, *v, *n;
 };
 
 // toys/other/shred.c
@@ -773,6 +769,12 @@ struct ping_data {
 
 struct route_data {
   char *family;
+};
+
+// toys/pending/setfattr.c
+
+struct setfattr_data {
+  char *x, *v, *n;
 };
 
 // toys/pending/sh.c
@@ -1408,7 +1410,6 @@ extern union global_union {
 	struct modinfo_data modinfo;
 	struct nsenter_data nsenter;
 	struct oneit_data oneit;
-	struct setfattr_data setfattr;
 	struct shred_data shred;
 	struct stat_data stat;
 	struct swapon_data swapon;
@@ -1453,6 +1454,7 @@ extern union global_union {
 	struct openvt_data openvt;
 	struct ping_data ping;
 	struct route_data route;
+	struct setfattr_data setfattr;
 	struct sh_data sh;
 	struct sulogin_data sulogin;
 	struct syslogd_data syslogd;

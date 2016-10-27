@@ -680,12 +680,13 @@
 #undef FOR_factor
 #endif
 
-// fallocate >1l#| >1l#|
+// fallocate >1l#|o# >1l#|o#
 #undef OPTSTR_fallocate
-#define OPTSTR_fallocate ">1l#|"
+#define OPTSTR_fallocate ">1l#|o#"
 #ifdef CLEANUP_fallocate
 #undef CLEANUP_fallocate
 #undef FOR_fallocate
+#undef FLAG_o
 #undef FLAG_l
 #endif
 
@@ -1364,9 +1365,9 @@
 #undef FLAG_S
 #endif
 
-// ls (color):;ZgoACFHLRSabcdfhiklmnpqrstux1[-Cxm1][-Cxml][-Cxmo][-Cxmg][-cu][-ftS][-HL][!qb] (color):;ZgoACFHLRSabcdfhiklmnpqrstux1[-Cxm1][-Cxml][-Cxmo][-Cxmg][-cu][-ftS][-HL][!qb]
+// ls (color):;(show-control-chars)ZgoACFHLRSabcdfhiklmnpqrstux1[-Cxm1][-Cxml][-Cxmo][-Cxmg][-cu][-ftS][-HL][!qb] (color):;(show-control-chars)ZgoACFHLRSabcdfhiklmnpqrstux1[-Cxm1][-Cxml][-Cxmo][-Cxmg][-cu][-ftS][-HL][!qb]
 #undef OPTSTR_ls
-#define OPTSTR_ls "(color):;ZgoACFHLRSabcdfhiklmnpqrstux1[-Cxm1][-Cxml][-Cxmo][-Cxmg][-cu][-ftS][-HL][!qb]"
+#define OPTSTR_ls "(color):;(show-control-chars)ZgoACFHLRSabcdfhiklmnpqrstux1[-Cxm1][-Cxml][-Cxmo][-Cxmg][-cu][-ftS][-HL][!qb]"
 #ifdef CLEANUP_ls
 #undef CLEANUP_ls
 #undef FOR_ls
@@ -1399,6 +1400,7 @@
 #undef FLAG_o
 #undef FLAG_g
 #undef FLAG_Z
+#undef FLAG_show_control_chars
 #undef FLAG_color
 #endif
 
@@ -1666,9 +1668,9 @@
 #undef FLAG_n
 #endif
 
-// netcat ^tlLw#p#s:q#f: ^tlLw#p#s:q#f:
+// netcat ^tlLw#W#p#s:q#f:[!tlL][!Lw] ^tlLw#W#p#s:q#f:[!tlL][!Lw]
 #undef OPTSTR_netcat
-#define OPTSTR_netcat "^tlLw#p#s:q#f:"
+#define OPTSTR_netcat "^tlLw#W#p#s:q#f:[!tlL][!Lw]"
 #ifdef CLEANUP_netcat
 #undef CLEANUP_netcat
 #undef FOR_netcat
@@ -1676,6 +1678,7 @@
 #undef FLAG_q
 #undef FLAG_s
 #undef FLAG_p
+#undef FLAG_W
 #undef FLAG_w
 #undef FLAG_L
 #undef FLAG_l
@@ -2746,9 +2749,9 @@
 #undef FLAG_m
 #endif
 
-// touch acd:mr:t:h[!dtr] acd:mr:t:h[!dtr]
+// touch <1acd:mr:t:h[!dtr] <1acd:mr:t:h[!dtr]
 #undef OPTSTR_touch
-#define OPTSTR_touch "acd:mr:t:h[!dtr]"
+#define OPTSTR_touch "<1acd:mr:t:h[!dtr]"
 #ifdef CLEANUP_touch
 #undef CLEANUP_touch
 #undef FOR_touch
@@ -3732,7 +3735,8 @@
 #ifndef TT
 #define TT this.fallocate
 #endif
-#define FLAG_l (1<<0)
+#define FLAG_o (1<<0)
+#define FLAG_l (1<<1)
 #endif
 
 #ifdef FOR_false
@@ -4329,7 +4333,8 @@
 #define FLAG_o (1<<26)
 #define FLAG_g (1<<27)
 #define FLAG_Z (1<<28)
-#define FLAG_color (1<<29)
+#define FLAG_show_control_chars (1<<29)
+#define FLAG_color (1<<30)
 #endif
 
 #ifdef FOR_lsattr
@@ -4558,10 +4563,11 @@
 #define FLAG_q (1<<1)
 #define FLAG_s (1<<2)
 #define FLAG_p (1<<3)
-#define FLAG_w (1<<4)
-#define FLAG_L (1<<5)
-#define FLAG_l (1<<6)
-#define FLAG_t (1<<7)
+#define FLAG_W (1<<4)
+#define FLAG_w (1<<5)
+#define FLAG_L (1<<6)
+#define FLAG_l (1<<7)
+#define FLAG_t (1<<8)
 #endif
 
 #ifdef FOR_netstat

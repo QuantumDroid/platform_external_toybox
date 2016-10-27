@@ -28,7 +28,7 @@
 
 #define HELP_toybox_suid "Support for the Set User ID bit, to install toybox suid root and drop\npermissions for commands which do not require root access. To use\nthis change ownership of the file to the root user and set the suid\nbit in the file permissions:\n\nchown root:root toybox; chmod +s toybox\n\nprompt \"Security Blanket\"\ndefault TOYBOX_LSM_NONE\nhelp\nSelect a Linux Security Module to complicate your system\nuntil you can't find holes in it.\n\n"
 
-#define HELP_toybox "usage: toybox [--long | --version | [command] [arguments...]]\n\nWith no arguments, shows available commands. First argument is\nname of a command to run, followed by any arguments to that command.\n\n--long	Show path to each command\n--version	Show toybox version\n\nTo install command symlinks, try:\n  for i in $(/bin/toybox --long); do ln -s /bin/toybox $i; done\n\n"
+#define HELP_toybox "usage: toybox [--long | --help | --version | [command] [arguments...]]\n\nWith no arguments, shows available commands. First argument is\nname of a command to run, followed by any arguments to that command.\n\n--long	Show path to each command\n\nTo install command symlinks, try:\n  for i in $(/bin/toybox --long); do ln -s /bin/toybox $i; done\n\nMost toybox commands also understand the following arguments:\n\n--help		Show command help (only)\n--version	Show toybox version (only)\n\nThe filename \"-\" means stdin, \"--\" stops argument parsing,\nand numerical arguments accept a single letter suffix for\nkilo, mega, giga, tera, peta, and exabytes, plus an additional\n\"d\" to indicate decimal 1000's instead of 1024.\n\n"
 
 #define HELP_stop "usage: stop [SERVICE...]\n\nStop the given system service, or netd/surfaceflinger/zygotes.\n\n"
 
@@ -110,9 +110,7 @@
 
 #define HELP_netstat "usage: netstat [-pWrxwutneal]\n\nDisplay networking information. Default is netsat -tuwx\n\n-r  routing table\n-a  all sockets (not just connected)\n-l  listening server sockets\n-t  TCP sockets\n-u  UDP sockets\n-w  raw sockets\n-x  unix sockets\n-e  extended info\n-n  don't resolve names\n-W  wide display\n-p  PID/Program name of sockets\n\n"
 
-#define HELP_netcat_listen_tty "usage: netcat [-t]\n\n-t	allocate tty (must come before -l or -L)\n\n"
-
-#define HELP_netcat "usage: netcat [-lL COMMAND...] [-u] [-wpq #] [-s addr] {IPADDR PORTNUM|-f FILENAME}\n\n-L	listen for multiple incoming connections (server mode).\n-f	use FILENAME (ala /dev/ttyS0) instead of network\n-l	listen for one incoming connection.\n-p	local port number\n-q	SECONDS quit this many seconds after EOF on stdin.\n-s	local ipv4 address\n-w	SECONDS timeout for connection\n\nUse \"stty 115200 -F /dev/ttyS0 && stty raw -echo -ctlecho\" with\nnetcat -f to connect to a serial port.\n\nThe command line after -l or -L is executed to handle each incoming\nconnection. If none, the connection is forwarded to stdin/stdout.\n\nFor a quick-and-dirty server, try something like:\nnetcat -s 127.0.0.1 -p 1234 -tL /bin/bash -l\n"
+#define HELP_netcat "usage: netcat [-tu] [-lL COMMAND...] [-wpq #] [-s addr] {IPADDR PORTNUM|-f FILENAME}\n\n-L	listen for multiple incoming connections (server mode)\n-W	SECONDS timeout for idle connection\n-f	use FILENAME (ala /dev/ttyS0) instead of network\n-l	listen for one incoming connection\n-p	local port number\n-q	quit SECONDS after EOF on stdin, even if stdout hasn't closed yet.\n-s	local source address\n-t	allocate tty (must come before -l or -L)\n-w	SECONDS timeout to establish connection\n\nUse \"stty 115200 -F /dev/ttyS0 && stty raw -echo -ctlecho\" with\nnetcat -f to connect to a serial port.\n\nThe command line after -l or -L is executed (as a child process) to handle\neach incoming connection. If blank -l waits for a connection and forwards\nit to stdin/stdout. If no -p specified, -l prints port it bound to and\nbackgrounds itself (returning immediately).\n\nFor a quick-and-dirty server, try something like:\nnetcat -s 127.0.0.1 -p 1234 -tL /bin/bash -l\n"
 
 #define HELP_ifconfig "usage: ifconfig [-a] [INTERFACE [ACTION...]]\n\nDisplay or configure network interface.\n\nWith no arguments, display active interfaces. First argument is interface\nto operate on, one argument by itself displays that interface.\n\n-a	Show all interfaces, not just active ones\n\nAdditional arguments are actions to perform on the interface:\n\nADDRESS[/NETMASK] - set IPv4 address (1.2.3.4/5)\ndefault - unset ipv4 address\nadd|del ADDRESS[/PREFIXLEN] - add/remove IPv6 address (1111::8888/128)\nup - enable interface\ndown - disable interface\n\nnetmask|broadcast|pointopoint ADDRESS - set more IPv4 characteristics\nhw ether|infiniband ADDRESS - set LAN hardware address (AA:BB:CC...)\ntxqueuelen LEN - number of buffered packets before output blocks\nmtu LEN - size of outgoing packets (Maximum Transmission Unit)\n\nFlags you can set on an interface (or -remove by prefixing with -):\narp - don't use Address Resolution Protocol to map LAN routes\npromisc - don't discard packets that aren't to this LAN hardware address\nmulticast - force interface into multicast mode if the driver doesn't\nallmulti - promisc for multicast packets\n\nObsolete fields included for historical purposes:\nirq|io_addr|mem_start ADDR - micromanage obsolete hardware\noutfill|keepalive INTEGER - SLIP analog dialup line quality monitoring\nmetric INTEGER - added to Linux 0.9.10 with comment \"never used\", still true\n\n"
 
@@ -155,8 +153,6 @@
 #define HELP_shred "usage: shred [-fuz] [-n COUNT] [-s SIZE] FILE...\n\nSecurely delete a file by overwriting its contents with random data.\n\n-f        Force (chmod if necessary)\n-n COUNT  Random overwrite iterations (default 1)\n-o OFFSET Start at OFFSET\n-s SIZE   Use SIZE instead of detecting file size\n-u        unlink (actually delete file when done)\n-x        Use exact size (default without -s rounds up to next 4k)\n-z        zero at end\n\nNote: data journaling filesystems render this command useless, you must\noverwrite all free space (fill up disk) to erase old data on those.\n\n"
 
 #define HELP_setsid "usage: setsid [-t] command [args...]\n\nRun process in a new session.\n\n-t	Grab tty (become foreground process, receiving keyboard signals)\n\n"
-
-#define HELP_setfattr "usage: setfattr [-h] [-x|-n NAME] [-v VALUE] FILE...\n\nWrite POSIX extended attributes.\n\n-h	Do not dereference symlink.\n-n	Set given attribute.\n-x	Remove given attribute.\n-v	Set value for attribute -n (default is empty).\n\n"
 
 #define HELP_rmmod "usage: rmmod [-wf] [MODULE]\n\nUnload the module named MODULE from the Linux kernel.\n-f	Force unload of a module\n-w	Wait until the module is no longer used.\n\n\n"
 
@@ -210,9 +206,9 @@
 
 #define HELP_lsmod "usage: lsmod\n\nDisplay the currently loaded modules, their sizes and their dependencies.\n\n"
 
-#define HELP_chattr "usage: chattr [-R] [-+=AacDdijsStTu] [-v version] [File...]\n\nChange file attributes on a Linux second extended file system.\n\nOperators:\n  '-' Remove attributes.\n  '+' Add attributes.\n  '=' Set attributes.\n\nAttributes:\n  A  Don't track atime.\n  a  Append mode only.\n  c  Enable compress.\n  D  Write dir contents synchronously.\n  d  Don't backup with dump.\n  i  Cannot be modified (immutable).\n  j  Write all data to journal first.\n  s  Zero disk storage when deleted.\n  S  Write file contents synchronously.\n  t  Disable tail-merging of partial blocks with other files.\n  u  Allow file to be undeleted.\n  -R Recurse.\n  -v Set the file's version/generation number.\n\n\n"
+#define HELP_chattr "usage: chattr [-R] [-+=AacDdijsStTu] [-v version] [File...]\n\nChange file attributes on a Linux second extended file system.\n\n-R Recurse.\n-v Set the file's version/generation number.\n\nOperators:\n  '-' Remove attributes.\n  '+' Add attributes.\n  '=' Set attributes.\n\nAttributes:\n  A  Don't track atime.\n  a  Append mode only.\n  c  Enable compress.\n  D  Write dir contents synchronously.\n  d  Don't backup with dump.\n  i  Cannot be modified (immutable).\n  j  Write all data to journal first.\n  s  Zero disk storage when deleted.\n  S  Write file contents synchronously.\n  t  Disable tail-merging of partial blocks with other files.\n  u  Allow file to be undeleted.\n\n"
 
-#define HELP_lsattr "usage: lsattr [-Radlv] [Files...]\n\nList file attributes on a Linux second extended file system.\n\n-R Recursively list attributes of directories and their contents.\n-a List all files in directories, including files that start with '.'.\n-d List directories like other files, rather than listing their contents.\n-l List long flag names.\n-v List the file's version/generation number.\n\n"
+#define HELP_lsattr "usage: lsattr [-Radlv] [Files...]\n\nList file attributes on a Linux second extended file system.\n(AacDdijsStu defined in chattr --help)\n\n-R Recursively list attributes of directories and their contents.\n-a List all files in directories, including files that start with '.'.\n-d List directories like other files, rather than listing their contents.\n-l List long flag names.\n-v List the file's version/generation number.\n\n"
 
 #define HELP_losetup "usage: losetup [-cdrs] [-o OFFSET] [-S SIZE] {-d DEVICE...|-j FILE|-af|{DEVICE FILE}}\n\nAssociate a loopback device with a file, or show current file (if any)\nassociated with a loop device.\n\nInstead of a device:\n-a	Iterate through all loopback devices\n-f	Find first unused loop device (may create one)\n-j	Iterate through all loopback devices associated with FILE\n\nexisting:\n-c	Check capacity (file size changed)\n-d	Detach loopback device\n\nnew:\n-s	Show device name (alias --show)\n-o	Start assocation at OFFSET into FILE\n-r	Read only\n-S	Limit SIZE of loopback association (alias --sizelimit)\n\n"
 
@@ -244,7 +240,7 @@
 
 #define HELP_flock "usage: flock [-sxun] fd\n\nManage advisory file locks.\n\n-s	Shared lock.\n-x	Exclusive lock (default).\n-u	Unlock.\n-n	Non-blocking: fail rather than wait for the lock.\n\n"
 
-#define HELP_fallocate "usage: fallocate [-l size] file\n\nTell the filesystem to allocate space for a file.\n\n"
+#define HELP_fallocate "usage: fallocate [-l size] [-o offset] file\n\nTell the filesystem to allocate space for a file.\n\n"
 
 #define HELP_factor "usage: factor NUMBER...\n\nFactor integers.\n\n"
 
@@ -317,6 +313,8 @@
 #define HELP_cd "usage: cd [-PL] [path]\n\nChange current directory.  With no arguments, go $HOME.\n\n-P	Physical path: resolve symlinks in path.\n-L	Local path: .. trims directories off $PWD (default).\n\n"
 
 #define HELP_sh "usage: sh [-c command] [script]\n\nCommand shell.  Runs a shell script, or reads input interactively\nand responds to it.\n\n-c	command line to execute\n-i	interactive mode (default when STDIN is a tty)\n\n"
+
+#define HELP_setfattr "usage: setfattr [-h] [-x|-n NAME] [-v VALUE] FILE...\n\nWrite POSIX extended attributes.\n\n-h	Do not dereference symlink.\n-n	Set given attribute.\n-x	Remove given attribute.\n-v	Set value for attribute -n (default is empty).\n\n"
 
 #define HELP_route "usage: route [-ne] [-A inet[6]] / [add|del]\n\nDisplay/Edit kernel routing tables.\n\n-n	no name lookups\n-e	display other/more information\n-A	inet{6} Select Address Family\n\nreject mod dyn reinstate metric netmask gw mss window irtt dev\n\n"
 

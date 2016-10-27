@@ -6,7 +6,7 @@
 #include "toys.h"
 
 #ifndef TOYBOX_VERSION
-#define TOYBOX_VERSION "0.7.1"
+#define TOYBOX_VERSION "0.7.2"
 #endif
 
 // Populate toy_list[].
@@ -70,6 +70,7 @@ static const int NEED_OPTIONS =
 static void unknown(char *name)
 {
   toys.exitval = 127;
+  toys.which = toy_list;
   error_exit("Unknown command %s", name);
 }
 
