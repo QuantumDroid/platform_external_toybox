@@ -69,7 +69,6 @@ LOCAL_SRC_FILES := \
     toys/android/setenforce.c \
     toys/android/setprop.c \
     toys/android/start.c \
-    toys/lsb/dmesg.c \
     toys/lsb/hostname.c \
     toys/lsb/killall.c \
     toys/lsb/md5sum.c \
@@ -81,6 +80,7 @@ LOCAL_SRC_FILES := \
     toys/lsb/sync.c \
     toys/lsb/umount.c \
     toys/net/ifconfig.c \
+    toys/net/microcom.c \
     toys/net/netcat.c \
     toys/net/netstat.c \
     toys/net/rfkill.c \
@@ -140,9 +140,11 @@ LOCAL_SRC_FILES := \
     toys/other/yes.c \
     toys/pending/chrt.c \
     toys/pending/dd.c \
+    toys/pending/dmesg.c \
     toys/pending/expr.c \
     toys/pending/getfattr.c \
     toys/pending/lsof.c \
+    toys/pending/modprobe.c \
     toys/pending/more.c \
     toys/pending/setfattr.c \
     toys/pending/tar.c \
@@ -307,7 +309,9 @@ ALL_TOOLS := \
     mknod \
     mkswap \
     mktemp \
+    microcom \
     modinfo \
+    modprobe \
     more \
     mount \
     mountpoint \

@@ -130,7 +130,7 @@ void xexec(char **argv);
 pid_t xpopen_both(char **argv, int *pipes);
 int xwaitpid(pid_t pid);
 int xpclose_both(pid_t pid, int *pipes);
-pid_t xpopen(char **argv, int *pipe, int stdout);
+pid_t xpopen(char **argv, int *pipe, int isstdout);
 pid_t xpclose(pid_t pid, int pipe);
 int xrun(char **argv);
 int xpspawn(char **argv, int*pipes);
@@ -211,7 +211,7 @@ off_t fdlength(int fd);
 void loopfiles_rw(char **argv, int flags, int permissions,
   void (*function)(int fd, char *name));
 void loopfiles(char **argv, void (*function)(int fd, char *name));
-void xsendfile(int in, int out);
+long long xsendfile(int in, int out);
 int wfchmodat(int rc, char *name, mode_t mode);
 int copy_tempfile(int fdin, char *name, char **tempname);
 void delete_tempfile(int fdin, int fdout, char **tempname);
@@ -322,7 +322,7 @@ void mode_to_string(mode_t mode, char *buf);
 char *getbasename(char *name);
 void names_to_pid(char **names, int (*callback)(pid_t pid, char *name));
 
-pid_t xvforkwrap(pid_t pid);
+pid_t __attribute__((returns_twice)) xvforkwrap(pid_t pid);
 #define XVFORK() xvforkwrap(vfork())
 
 // Wrapper to make xfuncs() return (via longjmp) instead of exiting.
