@@ -15,9 +15,6 @@ then
   exit 1
 fi
 
-# Force dependencies to rebuild headers if we build multiplexer after this.
-touch -c .config
-
 export KCONFIG_CONFIG=.singleconfig
 for i in "$@"
 do

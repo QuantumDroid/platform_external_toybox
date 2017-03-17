@@ -5,18 +5,17 @@
  *
  * No Standard.
 
-USE_MODPROBE(NEWTOY(modprobe, "alrqvsDbd*", TOYFLAG_SBIN))
+USE_MODPROBE(NEWTOY(modprobe, "alrqvsDb", TOYFLAG_SBIN))
 
 config MODPROBE
   bool "modprobe"
   default n
   help
-    usage: modprobe [-alrqvsDb] [-d DIR] MODULE [symbol=value][...]
+    usage: modprobe [-alrqvsDb] MODULE [symbol=value][...]
 
     modprobe utility - inserts modules and dependencies.
 
     -a  Load multiple MODULEs
-    -d  Load modules from DIR, option may be used multiple times
     -l  List (MODULE is a pattern)
     -r  Remove MODULE (stacks) or do autoclean
     -q  Quiet
@@ -30,13 +29,12 @@ config MODPROBE
 #include <sys/syscall.h>
 
 GLOBALS(
-  struct arg_list *dirs;
-
   struct arg_list *probes;
   struct arg_list *dbase[256];
   char *cmdopts;
   int nudeps;
   uint8_t symreq;
+  void (*dbg)(char *format, ...);
 )
 
 /* Note: if "#define DBASE_SIZE" modified, 
@@ -50,6 +48,11 @@ GLOBALS(
 #define MOD_BLACKLIST 0x0002
 #define MOD_FNDDEPMOD 0x0004
 #define MOD_NDDEPS    0x0008
+
+// dummy interface for debugging.
+static void dummy(char *format, ...)
+{
+}
 
 // Current probing modules info
 struct module_s {
@@ -167,13 +170,12 @@ static struct module_s *get_mod(char *mod, uint8_t add)
 static int read_line(FILE *fl, char **li)
 {
   char *nxtline = NULL, *line;
-  ssize_t len, nxtlen;
-  size_t linelen, nxtlinelen;
+  int len, nxtlen, linelen, nxtlinelen;
 
   while (1) {
     line = NULL;
     linelen = nxtlinelen = 0;
-    len = getline(&line, &linelen, fl);
+    len = getline(&line, (size_t*)&linelen, fl);
     if (len <= 0) {
       free(line);
       return len;
@@ -190,7 +192,7 @@ static int read_line(FILE *fl, char **li)
     } else if (line[len - 1] != '\\') break;
     
     len--;
-    nxtlen = getline(&nxtline, &nxtlinelen, fl);
+    nxtlen = getline(&nxtline, (size_t*)&nxtlinelen, fl);
     if (nxtlen <= 0) break;
     if (linelen < len + nxtlen + 1) {
       linelen = len + nxtlen + 1;
@@ -299,7 +301,7 @@ static int depmode_read_entry(char *cmdname)
       if (tmp) *tmp = '\0';
       if (!cmdname || !fnmatch(cmdname, name, 0)) {
         if (tmp) *tmp = '.';
-        if (toys.optflags&FLAG_v) puts(line);
+        TT.dbg("%s\n", line);
         ret = 0;
       }
     }
@@ -367,19 +369,6 @@ static int ins_mod(char *modules, char *flags)
   int len, res;
   int fd = xopenro(modules);
 
-  while (flags && strlen(toybuf) + strlen(flags) + 2 < sizeof(toybuf)) {
-    strcat(toybuf, flags);
-    strcat(toybuf, " ");
-  }
-
-#ifdef __NR_finit_module
-  res = syscall(__NR_finit_module, fd, toybuf, 0);
-  if (!res || errno != ENOSYS) {
-	  xclose(fd);
-	  return res;
-  }
-#endif
-
   // TODO xreadfile()
 
   len = fdlength(fd);
@@ -387,6 +376,10 @@ static int ins_mod(char *modules, char *flags)
   xreadall(fd, buf, len);
   xclose(fd);
 
+  while (flags && strlen(toybuf) + strlen(flags) + 2 < sizeof(toybuf)) {
+    strcat(toybuf, flags);
+    strcat(toybuf, " ");
+  }
   res = syscall(__NR_init_module, buf, len, toybuf);
   if (CFG_TOYBOX_FREE && buf != toybuf) free(buf);
   return res;
@@ -398,10 +391,10 @@ static void add_mod(char *name)
   struct module_s *mod = get_mod(name, 1);
 
   if (!(toys.optflags & (FLAG_r | FLAG_D)) && (mod->flags & MOD_ALOADED)) {
-    if (toys.optflags&FLAG_v) printf("skipping %s, already loaded\n", name);
+    TT.dbg("skipping %s, it is already loaded\n", name);
     return;
   }
-  if (toys.optflags&FLAG_v) printf("queuing %s\n", name);
+  TT.dbg("queuing %s\n", name);
   mod->cmdname = name;
   mod->flags |= MOD_NDDEPS;
   llist_add_tail(&TT.probes, mod);
@@ -439,7 +432,7 @@ static int go_probe(struct module_s *m)
       error_msg("module %s not found in modules.dep", m->name);
     return -ENOENT;
   }
-  if (toys.optflags & FLAG_v) printf("go_prob'ing %s\n", m->name);
+  TT.dbg("go_prob'ing %s\n", m->name);
   if (!(toys.optflags & FLAG_r)) m->dep = llist_rev(m->dep);
   
   while (m->dep) {
@@ -468,21 +461,18 @@ static int go_probe(struct module_s *m)
 
     // are we only checking dependencies ?
     if (toys.optflags & FLAG_D) {
-      if (toys.optflags & FLAG_v)
-        printf(options ? "insmod %s %s\n" : "insmod %s\n", fn, options);
+      TT.dbg(options ? "insmod %s %s\n" : "insmod %s\n", fn, options);
       if (options) free(options);
       continue;
     }
     if (m2->flags & MOD_ALOADED) {
-      if (toys.optflags&FLAG_v)
-        printf("%s is already loaded, skipping\n", fn);
+      TT.dbg("%s is already loaded, skipping\n", fn);
       if (options) free(options);
       continue;
     }
     // none of above is true insert the module.
     rc = ins_mod(fn, options);
-    if (toys.optflags&FLAG_v)
-      printf("loaded %s '%s', rc:%d\n", fn, options, rc);
+    TT.dbg("loaded %s '%s', rc:%d\n", fn, options, rc);
     if (rc == EEXIST) rc = 0;
     if (options) free(options);
     if (rc) {
@@ -501,7 +491,8 @@ void modprobe_main(void)
   FILE *fs;
   struct module_s *module;
   unsigned flags = toys.optflags;
-  struct arg_list *dirs;
+
+  TT.dbg = (flags & FLAG_v) ? xprintf : dummy;
 
   if ((toys.optc < 1) && (((flags & FLAG_r) && (flags & FLAG_l))
         ||(!((flags & FLAG_r)||(flags & FLAG_l)))))
@@ -514,22 +505,16 @@ void modprobe_main(void)
     return;
   }
 
-  if (!TT.dirs) {
-    uname(&uts);
-    TT.dirs = xzalloc(sizeof(struct arg_list));
-    TT.dirs->arg = xmprintf("/lib/modules/%s", uts.release);
-  }
+  // change directory to /lib/modules/<release>/ 
+  xchdir("/lib/modules");
+  uname(&uts);
+  xchdir(uts.release);
 
   // modules.dep processing for dependency check.
   if (flags & FLAG_l) {
-    for (dirs = TT.dirs; dirs; dirs = dirs->next) {
-      xchdir(dirs->arg);
-      if (!depmode_read_entry(toys.optargs[0]))
-	      return;
-    }
-    error_exit("no module found.");
+    if (depmode_read_entry(toys.optargs[0])) error_exit("no module found.");
+    return;
   }
-
   // Read /proc/modules to get loaded modules.
   fs = xfopen("/proc/modules", "r");
   
@@ -549,26 +534,17 @@ void modprobe_main(void)
     TT.cmdopts = add_cmdopt(argv);
   }
   if (!TT.probes) {
-    if (toys.optflags&FLAG_v) puts("All modules loaded");
+    TT.dbg("All modules loaded\n");
     return;
   }
   dirtree_read("/etc/modprobe.conf", config_action);
   dirtree_read("/etc/modprobe.d", config_action);
-
-  for (dirs = TT.dirs; dirs; dirs = dirs->next) {
-    xchdir(dirs->arg);
-    if (TT.symreq) dirtree_read("modules.symbols", config_action);
-    if (TT.nudeps) dirtree_read("modules.alias", config_action);
-  }
-
-  for (dirs = TT.dirs; dirs; dirs = dirs->next) {
-	  xchdir(dirs->arg);
-	  find_dep();
-  }
-
+  if (TT.symreq) dirtree_read("modules.symbols", config_action);
+  if (TT.nudeps) dirtree_read("modules.alias", config_action);
+  find_dep();
   while ((module = llist_popme(&TT.probes))) {
     if (!module->rnames) {
-      if (toys.optflags&FLAG_v) puts("probing by module name");
+      TT.dbg("probing by module name\n");
       /* This is not an alias. Literal names are blacklisted
        * only if '-b' is given.
        */
@@ -580,8 +556,7 @@ void modprobe_main(void)
       char *real = ((struct arg_list*)llist_pop(&module->rnames))->arg;
       struct module_s *m2 = get_mod(real, 0);
       
-      if (toys.optflags&FLAG_v)
-        printf("probing alias %s by realname %s\n", module->name, real);
+      TT.dbg("probing alias %s by realname %s\n", module->name, real);
       if (!m2) continue;
       if (!(m2->flags & MOD_BLACKLIST) 
           && (!(m2->flags & MOD_ALOADED) || (flags & (FLAG_r | FLAG_D))))

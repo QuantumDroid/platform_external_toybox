@@ -57,14 +57,6 @@
 #undef FLAG_s
 #endif
 
-// ascii    
-#undef OPTSTR_ascii
-#define OPTSTR_ascii 0
-#ifdef CLEANUP_ascii
-#undef CLEANUP_ascii
-#undef FOR_ascii
-#endif
-
 // base64 diw#<0=76[!dw] diw#<0=76[!dw]
 #undef OPTSTR_base64
 #define OPTSTR_base64 "diw#<0=76[!dw]"
@@ -572,9 +564,9 @@
 #undef FOR_dirname
 #endif
 
-// dmesg w(follow)Ctrs#<1n#c[!tr][!Cc] w(follow)Ctrs#<1n#c[!tr][!Cc]
+// dmesg w(follow)Ctrs#<1n#c[!tr] w(follow)Ctrs#<1n#c[!tr]
 #undef OPTSTR_dmesg
-#define OPTSTR_dmesg "w(follow)Ctrs#<1n#c[!tr][!Cc]"
+#define OPTSTR_dmesg "w(follow)Ctrs#<1n#c[!tr]"
 #ifdef CLEANUP_dmesg
 #undef CLEANUP_dmesg
 #undef FOR_dmesg
@@ -833,25 +825,17 @@
 #undef FLAG_d
 #endif
 
-// ftpget   <2>3P:cp:u:vgslLmMdD[-gs][!gslLmMdD][!clL]
+// ftpget   <2cvu:p:P#<0=21>65535
 #undef OPTSTR_ftpget
-#define OPTSTR_ftpget "<2>3P:cp:u:vgslLmMdD[-gs][!gslLmMdD][!clL]"
+#define OPTSTR_ftpget "<2cvu:p:P#<0=21>65535"
 #ifdef CLEANUP_ftpget
 #undef CLEANUP_ftpget
 #undef FOR_ftpget
-#undef FLAG_D
-#undef FLAG_d
-#undef FLAG_M
-#undef FLAG_m
-#undef FLAG_L
-#undef FLAG_l
-#undef FLAG_s
-#undef FLAG_g
-#undef FLAG_v
-#undef FLAG_u
-#undef FLAG_p
-#undef FLAG_c
 #undef FLAG_P
+#undef FLAG_p
+#undef FLAG_u
+#undef FLAG_v
+#undef FLAG_c
 #endif
 
 // getenforce >0 >0
@@ -1504,16 +1488,6 @@
 #undef FLAG_s
 #endif
 
-// microcom <1>1s:X <1>1s:X
-#undef OPTSTR_microcom
-#define OPTSTR_microcom "<1>1s:X"
-#ifdef CLEANUP_microcom
-#undef CLEANUP_microcom
-#undef FOR_microcom
-#undef FLAG_X
-#undef FLAG_s
-#endif
-
 // mix   c:d:l#r#
 #undef OPTSTR_mix
 #define OPTSTR_mix "c:d:l#r#"
@@ -1621,13 +1595,12 @@
 #undef FLAG_b
 #endif
 
-// modprobe alrqvsDbd* alrqvsDbd*
+// modprobe   alrqvsDb
 #undef OPTSTR_modprobe
-#define OPTSTR_modprobe "alrqvsDbd*"
+#define OPTSTR_modprobe "alrqvsDb"
 #ifdef CLEANUP_modprobe
 #undef CLEANUP_modprobe
 #undef FOR_modprobe
-#undef FLAG_d
 #undef FLAG_b
 #undef FLAG_D
 #undef FLAG_s
@@ -3238,12 +3211,6 @@
 #define FLAG_s (FORCED_FLAG<<9)
 #endif
 
-#ifdef FOR_ascii
-#ifndef TT
-#define TT this.ascii
-#endif
-#endif
-
 #ifdef FOR_base64
 #ifndef TT
 #define TT this.base64
@@ -3890,19 +3857,11 @@
 #ifndef TT
 #define TT this.ftpget
 #endif
-#define FLAG_D (FORCED_FLAG<<0)
-#define FLAG_d (FORCED_FLAG<<1)
-#define FLAG_M (FORCED_FLAG<<2)
-#define FLAG_m (FORCED_FLAG<<3)
-#define FLAG_L (FORCED_FLAG<<4)
-#define FLAG_l (FORCED_FLAG<<5)
-#define FLAG_s (FORCED_FLAG<<6)
-#define FLAG_g (FORCED_FLAG<<7)
-#define FLAG_v (FORCED_FLAG<<8)
-#define FLAG_u (FORCED_FLAG<<9)
-#define FLAG_p (FORCED_FLAG<<10)
-#define FLAG_c (FORCED_FLAG<<11)
-#define FLAG_P (FORCED_FLAG<<12)
+#define FLAG_P (FORCED_FLAG<<0)
+#define FLAG_p (FORCED_FLAG<<1)
+#define FLAG_u (FORCED_FLAG<<2)
+#define FLAG_v (FORCED_FLAG<<3)
+#define FLAG_c (FORCED_FLAG<<4)
 #endif
 
 #ifdef FOR_getenforce
@@ -4449,14 +4408,6 @@
 #define FLAG_s (FORCED_FLAG<<0)
 #endif
 
-#ifdef FOR_microcom
-#ifndef TT
-#define TT this.microcom
-#endif
-#define FLAG_X (1<<0)
-#define FLAG_s (1<<1)
-#endif
-
 #ifdef FOR_mix
 #ifndef TT
 #define TT this.mix
@@ -4550,15 +4501,14 @@
 #ifndef TT
 #define TT this.modprobe
 #endif
-#define FLAG_d (1<<0)
-#define FLAG_b (1<<1)
-#define FLAG_D (1<<2)
-#define FLAG_s (1<<3)
-#define FLAG_v (1<<4)
-#define FLAG_q (1<<5)
-#define FLAG_r (1<<6)
-#define FLAG_l (1<<7)
-#define FLAG_a (1<<8)
+#define FLAG_b (FORCED_FLAG<<0)
+#define FLAG_D (FORCED_FLAG<<1)
+#define FLAG_s (FORCED_FLAG<<2)
+#define FLAG_v (FORCED_FLAG<<3)
+#define FLAG_q (FORCED_FLAG<<4)
+#define FLAG_r (FORCED_FLAG<<5)
+#define FLAG_l (FORCED_FLAG<<6)
+#define FLAG_a (FORCED_FLAG<<7)
 #endif
 
 #ifdef FOR_more
